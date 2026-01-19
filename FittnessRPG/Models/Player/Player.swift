@@ -18,6 +18,8 @@ enum Species: String, Codable, CaseIterable {
     case Human, Elf, Gnome, Orc
 }
 
+
+
 // MARK: - Quest Persistence
 
 struct QuestAreaProgress: Codable {
@@ -33,22 +35,20 @@ struct QuestAreaProgress: Codable {
 }
 
 struct Player: Codable {
+     
     var name: String = ""
     var species: Species = .Human
     var playerClass: PlayerClass = .Knight
-
     var level: Int = 1
     var experience: Double = 0
     var distanceProgress: Double = 0
-
+    var unspentLevelUps: Int = 0
     var appliedWorkoutIDs: [UUID] = []
     var skills: [Skill] = []
-
-    // MARK: - Efforts (Stats)
-    /// Earned from workouts. Never consumed; used as persistent stats to gate attacks.
+    /// Earned from workouts. Never consumed.
     var efforts: [Effort] = []
 
-    // MARK: - Attacks (Legacy fields retained to minimize schema churn)
+    /// Attacks (Legacy fields retained to minimize schema churn)
     /// Deprecated for logic. Attacks are now unlocked by level (requiredLevel <= level).
     var ownedAttackIDs: Set<String> = []
 
@@ -62,13 +62,77 @@ struct Player: Codable {
     /// Tracks which attacks have already been shown in the “newly usable attacks” notification.
     var notifiedUsableAttackIDs: Set<String> = []
 
-    // MARK: - Quests (Phase 2)
+    //  Quests (Phase 2)
     /// Keyed by quest area name (e.g. "Field", "Cave", "Seaside")
     var questProgressByAreaName: [String: QuestAreaProgress] = [:]
 
-    // MARK: - Trophy Room
+    // Trophy Room
     /// Enemy IDs the player has defeated at least once.
     var defeatedEnemyIDs: Set<String> = []
+    
+    /// Quest/region buttons the player has claimed (by QuestArea.name).
+    var claimedQuestButtonNames: Set<String> = []
+    
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case species
+        case playerClass
+        case level
+        case experience
+        case distanceProgress
+        case unspentLevelUps
+        
+        case appliedWorkoutIDs
+        case skills
+        case efforts
+        case ownedAttackIDs
+        case equippedAttackIDs
+        case manaByAttackID
+        case equippedLimit
+        case notifiedUsableAttackIDs
+        case questProgressByAreaName
+        case defeatedEnemyIDs
+        case claimedQuestButtonNames
+        
+        
+    }
+    
+    init() { }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        name = try container.decode(String.self, forKey: .name)
+        species = try container.decode(Species.self, forKey: .species)
+        playerClass = try container.decode(PlayerClass.self, forKey: .playerClass)
+        level = try container.decode(Int.self, forKey: .level)
+        experience = try container.decode(Double.self, forKey: .experience)
+        distanceProgress = try container.decode(Double.self, forKey: .distanceProgress)
+
+        // ✅ Safe default for older saves
+        unspentLevelUps = try container.decodeIfPresent(Int.self, forKey: .unspentLevelUps) ?? 0
+        
+        appliedWorkoutIDs = try container.decodeIfPresent([UUID].self, forKey: .appliedWorkoutIDs) ?? []
+        skills = try container.decodeIfPresent([Skill].self, forKey: .skills) ?? []
+        efforts = try container.decodeIfPresent([Effort].self, forKey: .efforts) ?? []
+
+        ownedAttackIDs = try container.decodeIfPresent(Set<String>.self, forKey: .ownedAttackIDs) ?? []
+        equippedAttackIDs = try container.decodeIfPresent([String].self, forKey: .equippedAttackIDs) ?? []
+
+        manaByAttackID = try container.decodeIfPresent([String: Int].self, forKey: .manaByAttackID) ?? [:]
+        equippedLimit = try container.decodeIfPresent(Int.self, forKey: .equippedLimit) ?? 4
+
+        notifiedUsableAttackIDs = try container.decodeIfPresent(Set<String>.self, forKey: .notifiedUsableAttackIDs) ?? []
+
+        questProgressByAreaName = try container.decodeIfPresent([String: QuestAreaProgress].self, forKey: .questProgressByAreaName) ?? [:]
+
+        defeatedEnemyIDs = try container.decodeIfPresent(Set<String>.self, forKey: .defeatedEnemyIDs) ?? []
+        claimedQuestButtonNames = try container.decodeIfPresent(Set<String>.self, forKey: .claimedQuestButtonNames) ?? []
+        
+    }
+
+
     
     // MARK: - Computed properties
     var xpForNextLevel: Double {

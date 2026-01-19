@@ -5,6 +5,9 @@
 //  9 attacks per class. Multi-effort requirements supported.
 //  Effort requirements are based on TOTAL Effort units (no tier gating).
 //
+//  In future will add level up system for attacks.
+//  Each attack will have level 1, 2, 3, 4 and 5.
+//  The rules for the levels will change (example add armor remove and HP remove for x days walking, etc.
 
 import Foundation
 
@@ -31,7 +34,7 @@ struct AttackCatalog {
             requiredLevel: 1,
             manaCost: 3,
             modifiers: [
-                .manaDiscountWeeklyEffort(affinity: .rhythm, every: 7, minCost: 1)
+                .manaDiscountWeeklyEffort(affinity: .rhythm, every: 4, minCost: 1)
             ],
             effects: [
                 .removeArmor(amount: 2),
@@ -42,21 +45,21 @@ struct AttackCatalog {
         Attack(
             id: "wz_arcane_knowledge",
             name: "Arcane Knowledge",
-            requiredLevel: 1,
+            requiredLevel: 2,
             manaCost: 3,
             modifiers: [
-                .addArmorPerWeeklyEffort(affinity: .precision, perEffort: 3)
+                .addArmorPerWeeklyEffort(affinity: .precision, perEffort: 4)
             ],
             effects: [
                 .removeArmor(amount: 2),
-                .removeHP(amount: 1)
+                .removeHP(amount: 2)
             ]
         ),
         
         Attack(
             id: "wz_staff_strike",
             name: "Staff Strike",
-            requiredLevel: 1,
+            requiredLevel: 4,
             manaCost: 3,
             modifiers: [
                 .addHPPerWeeklyEffort(affinity: .force, perEffort: 3)
@@ -70,7 +73,7 @@ struct AttackCatalog {
         Attack(
             id: "wz_unleash_energy",
             name: "Unleash Energy",
-            requiredLevel: 1,
+            requiredLevel: 3,
             manaCost: 4,
             modifiers: [
                 .manaDiscountWeeklyEffort(affinity: .endurance, every: 3, minCost: 1)
@@ -88,14 +91,14 @@ struct AttackCatalog {
         Attack(
             id: "kn_spear_rush",
             name: "Spear Rush",
-            requiredLevel: 1,
-            manaCost: 4,
+            requiredLevel: 2,
+            manaCost: 3,
             modifiers: [
-                .manaDiscountWeeklyEffort(affinity: .endurance, every: 6, minCost: 1)
+                .manaDiscountWeeklyEffort(affinity: .endurance, every: 2, minCost: 1)
             ],
             effects: [
-                .removeArmor(amount: 2),
-                .removeHP(amount: 3)
+                .removeArmor(amount: 3),
+                .removeHP(amount: 2)
             ]
         ),
         
@@ -105,10 +108,10 @@ struct AttackCatalog {
             requiredLevel: 1,
             manaCost: 3,
             modifiers: [
-                .addHPPerWeeklyEffort(affinity: .force, perEffort: 3)
+                .addHPPerWeeklyEffort(affinity: .force, perEffort: 4)
             ],
             effects: [
-                .removeArmor(amount: 1),
+                .removeArmor(amount: 2),
                 .removeHP(amount: 2)
             ]
         ),
@@ -116,7 +119,7 @@ struct AttackCatalog {
         Attack(
             id: "kn_targeted_strike",
             name: "Targeted Strike",
-            requiredLevel: 1,
+            requiredLevel: 3,
             manaCost: 3,
             modifiers: [
                 .addArmorPerWeeklyEffort(affinity: .precision, perEffort: 3)
@@ -130,31 +133,31 @@ struct AttackCatalog {
         Attack(
             id: "kn_commend_oneself",
             name: "Commend Oneself",
-            requiredLevel: 1,
+            requiredLevel: 4,
             manaCost: 3,
             modifiers: [
                 .manaDiscountWeeklyEffort(affinity: .rhythm, every: 5, minCost: 1)
             ],
             effects: [
-                .removeArmor(amount: 3),
-                .removeHP(amount: 3)]
+                .removeArmor(amount: 2),
+                .removeHP(amount: 2)]
         )
     ]
     
-    // MARK: - Jester (Bias: Rhythm + Endurance)
+    // MARK: - Jester (Bias: Endurance + Rhythm)
     
     private static let jesterAttacks: [Attack] = [
         Attack(
             id: "js_taunting_chant",
             name: "Taunting Chant",
-            requiredLevel: 1,
+            requiredLevel: 2,
             manaCost: 3,
             modifiers: [
-                .manaDiscountWeeklyEffort(affinity: .rhythm, every: 7, minCost: 1)
+                .manaDiscountWeeklyEffort(affinity: .rhythm, every: 4, minCost: 1)
             ],
             effects: [
                 .removeArmor(amount: 2),
-                .removeHP(amount: 2)
+                .removeHP(amount: 3)
             ]
         ),
         
@@ -162,40 +165,40 @@ struct AttackCatalog {
             id: "js_running_gag",
             name: "Running Gag",
             requiredLevel: 1,
-            manaCost: 4,
+            manaCost: 3,
             modifiers: [
-                .manaDiscountWeeklyEffort(affinity: .endurance, every: 3, minCost: 1)
+                .manaDiscountWeeklyEffort(affinity: .endurance, every: 2, minCost: 1)
             ],
             effects: [
-                .removeArmor(amount: 4),
-                .removeHP(amount: 4)
+                .removeArmor(amount: 3),
+                .removeHP(amount: 2)
             ]
         ),
 
         Attack(
             id: "js_cutting_remark",
             name: "Cutting Remark",
-            requiredLevel: 1,
+            requiredLevel: 4,
             manaCost: 3,
             modifiers: [
-                .addArmorPerWeeklyEffort(affinity: .precision, perEffort: 3)
+                .addArmorPerWeeklyEffort(affinity: .precision, perEffort: 4)
             ],
             effects: [
                 .removeArmor(amount: 2),
-                .removeHP(amount: 1)
+                .removeHP(amount: 3)
             ]
         ),
         
         Attack(
             id: "js_scepter_smack",
             name: "Scepter Smack",
-            requiredLevel: 1,
+            requiredLevel: 3,
             manaCost: 3,
             modifiers: [
-                .addHPPerWeeklyEffort(affinity: .force, perEffort: 3)
+                .addHPPerWeeklyEffort(affinity: .force, perEffort: 4)
             ],
             effects: [
-                .removeArmor(amount: 1),
+                .removeArmor(amount: 3),
                 .removeHP(amount: 2)
             ]
         )

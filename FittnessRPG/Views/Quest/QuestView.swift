@@ -64,6 +64,23 @@ struct QuestView: View {
         .onChange(of: message) { _, newValue in
             presentToast(for: newValue)
         }
+        
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { vm.defeatPopupMessage != nil },
+                set: { if !$0 { vm.defeatPopupMessage = nil } }
+            )
+        ) {
+            DefeatPopupView(
+                enemyName: vm.defeatPopupEnemyName ?? "Enemy",
+                message: vm.defeatPopupMessage ?? "",
+                onDone: {
+                    vm.defeatPopupMessage = nil
+                    vm.defeatPopupEnemyName = nil
+                }
+            )
+        }
+
     }
 
     // MARK: - Toast control (persistent)
@@ -127,7 +144,17 @@ struct QuestView: View {
 
     private func perform(attack: Attack) {
         let result = vm.applyEncounterAttack(attack, in: quest)
-        message = result.message
+        
+        if let defeat = result.defeatPopupMessage, !defeat.isEmpty {
+            vm.defeatPopupEnemyName = result.enemyName ?? "Enemy"
+            vm.defeatPopupMessage = defeat  // triggers full screen cover
+            return
+        }
+        
+        if !result.message.isEmpty {
+            toastText = result.message
+            showToast = true
+        }
     }
 }
 
@@ -223,7 +250,7 @@ private struct LockedEncounterHeader: View {
                 .padding(.top, 10)
 
             VStack(spacing: 6) {
-                Text("HP: \(encounter.enemy.hp)/\(max(raw.maxHP, 1))  •  Armor: \(armorPoints)")
+                Text("Armor: \(armorPoints)  •  HP: \(encounter.enemy.hp)/\(max(raw.maxHP, 1))")
                     .font(.headline)
 
                 ProgressView(value: Double(encounter.enemy.hp), total: Double(max(raw.maxHP, 1)))
@@ -264,7 +291,7 @@ private struct LockedCompletedHeader: View {
                 Text("Reward already claimed.")
                     .foregroundStyle(.secondary)
             } else {
-                Button("Claim \(quest.rewardsXP) XP") {
+                Button("Claim \(quest.rewardButtonName)") {
                     let claimed = vm.claimQuestReward(quest)
                     message = claimed ? "Reward claimed!" : "Reward not available."
                 }
@@ -397,9 +424,9 @@ private struct AttackButtonRow: View {
                 }
 
                 HStack(spacing: 14) {
-                    statChip(label: "HP", value: effectiveHPRemoved)
-                    statChip(label: "Armor", value: effectiveArmorRemoved)
-
+                    statChip(label: "Armor Remove", value: effectiveArmorRemoved)
+                    statChip(label: "HP Remove", value: effectiveHPRemoved)
+                    
                     if matchesEnemyWeakness {
                         Text("Weakness")
                             .font(.caption2)

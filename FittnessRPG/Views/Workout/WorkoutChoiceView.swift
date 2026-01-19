@@ -6,8 +6,7 @@ struct WorkoutChoiceView: View {
     @State private var showManualEntry = false
 
     // NEW: Apply-all summary sheet
-    @State private var showApplyAllSummary = false
-    @State private var applyAllSummary: ApplyAllSummary? = nil
+    //@State private var applyAllSummary: ApplyAllSummary? = nil :::::MOVED ELSEWHERE:::::
 
     private var cutoff72Hours: Date {
         Date().addingTimeInterval(-72 * 3600)
@@ -63,7 +62,7 @@ struct WorkoutChoiceView: View {
 
                 // Manual entry (for non-HealthKit users)
                 Button {
-                    showManualEntry = true
+                    vm.presentSheetNow(.manualEntry)
                 } label: {
                     ActionButtonLabel(
                         title: "Manual Entry",
@@ -113,19 +112,8 @@ struct WorkoutChoiceView: View {
             }
         }
         .navigationTitle("Workouts")
-        .sheet(isPresented: $showManualEntry) {
-            NavigationStack {
-                ManualWorkoutEntryView { newSession in
-                    vm.addManualSession(newSession)
-                }
-            }
-        }
-        // NEW: summary sheet for Apply All
-        .sheet(isPresented: $showApplyAllSummary) {
-            NavigationStack {
-                ApplyAllSummaryView(summary: applyAllSummary)
-            }
-        }
+
+
     }
 
     // MARK: - Apply All + Summary
@@ -137,8 +125,12 @@ struct WorkoutChoiceView: View {
         // Compute summary BEFORE applying (for deterministic totals), but mana is net before/after.
         let manaBefore = vm.manaPoolCurrent()
         var summary = ApplyAllSummary.make(from: sessions)
-
-        // Apply them
+        
+        // present the summary first
+        vm.applyAllSummary = summary
+        vm.presentSheetNow(.applyAllSummary)
+                
+        // Apply them (enqueue levelup/attackchoice behind the summary
         for s in sessions {
             vm.applyWorkout(s)
         }
@@ -147,15 +139,16 @@ struct WorkoutChoiceView: View {
         summary.manaGainedNet = max(0, manaAfter - manaBefore)
         summary.manaBefore = manaBefore
         summary.manaAfter = manaAfter
-
-        applyAllSummary = summary
-        showApplyAllSummary = true
+        
+        vm.applyAllSummary = summary
+        vm.savePlayer()
+        
     }
 }
 
 // MARK: - Summary model
 
-private struct ApplyAllSummary {
+struct ApplyAllSummary {
     struct GroupKey: Hashable {
         let tier: EffortTier
         let workoutType: WorkoutType
@@ -244,8 +237,9 @@ private struct ApplyAllSummary {
 
 // MARK: - Summary sheet UI
 
-private struct ApplyAllSummaryView: View {
+struct ApplyAllSummaryView: View {
     let summary: ApplyAllSummary?
+    @ObservedObject var vm: GameViewModel
 
     @Environment(\.dismiss) private var dismiss
 
@@ -276,14 +270,26 @@ private struct ApplyAllSummaryView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { dismiss() }
+                        Button("Done") {
+                            vm.applyAllSummary = nil        // optional cleanup
+                            vm.dismissActiveSheet()         // CRITICAL: advances the queue
+                            vm.savePlayer()
+                            dismiss()
+                        }
+
                     }
                 }
             } else {
                 VStack(spacing: 12) {
                     Text("No summary available.")
                         .foregroundStyle(.secondary)
-                    Button("Done") { dismiss() }
+                    Button("Done") {
+                        vm.applyAllSummary = nil        // optional cleanup
+                        vm.dismissActiveSheet()         // CRITICAL: advances the queue
+                        vm.savePlayer()
+                        dismiss()
+                    }
+
                 }
                 .navigationTitle("Workout Applied")
                 .navigationBarTitleDisplayMode(.inline)

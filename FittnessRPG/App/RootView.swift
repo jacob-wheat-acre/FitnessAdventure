@@ -2,19 +2,42 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject var vm: GameViewModel
-
-    // Hook should be re-showable; we will clear this flag on character reset.
     @AppStorage("hasSeenOpeningHook") private var hasSeenOpeningHook: Bool = false
 
     var body: some View {
         Group {
-            // Show hook first, before character creation, if the flag is false.
             if !hasSeenOpeningHook {
                 OpeningHookView()
             } else if vm.player.name.isEmpty {
                 CharacterCreationView(vm: vm)
             } else {
                 MainMenuView(vm: vm)
+            }
+        }
+        .sheet(item: $vm.activeSheet) { (sheet: ActiveSheet) in
+            switch sheet {
+            case .attackChoice:
+                AttackChoiceView(vm: vm, choices: vm.attackChoices)
+
+            case .levelUp(let snapshot):
+                LevelUpView(snapshot: snapshot, vm: vm)
+
+            case .trophyDetail(let model):
+                TrophyDetailSheet(title: model.title, text: model.text)
+
+            case .manualEntry:
+                NavigationStack {
+                    ManualWorkoutEntryView { newSession in
+                        vm.addManualSession(newSession)
+                        vm.dismissActiveSheet()
+                        vm.savePlayer()
+                    }
+                }
+
+            case .applyAllSummary:
+                NavigationStack {
+                    ApplyAllSummaryView(summary: vm.applyAllSummary, vm: vm)
+                }
             }
         }
     }

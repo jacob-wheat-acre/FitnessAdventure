@@ -29,22 +29,9 @@
 		167B91682EFCBE8000FA2E23 /* FittnessRPGUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FittnessRPGUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		167B92492F01993E00FA2E23 /* Exceptions for "FittnessRPG" folder in "FittnessRPG" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"New Folder/Untitled.swift",
-			);
-			target = 167B91502EFCBE8000FA2E23 /* FittnessRPG */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		167B91532EFCBE8000FA2E23 /* FittnessRPG */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				167B92492F01993E00FA2E23 /* Exceptions for "FittnessRPG" folder in "FittnessRPG" target */,
-			);
 			path = FittnessRPG;
 			sourceTree = "<group>";
 		};
@@ -188,6 +175,7 @@
 				TargetAttributes = {
 					167B91502EFCBE8000FA2E23 = {
 						CreatedOnToolsVersion = 26.2;
+						LastSwiftMigration = 2620;
 					};
 					167B915D2EFCBE8000FA2E23 = {
 						CreatedOnToolsVersion = 26.2;
@@ -408,15 +396,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = FittnessRPG/FittnessRPG.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 2U5ZNJ449S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Fitness RPG";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads workouts (running, cycling,  strength) to convert exercise into game progress.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app uses your workout data to power gameplay.";
+				INFOPLIST_KEY_CFBundleDisplayName = "The Path";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads workouts (running, cycling, strength) to convert exercise into adventure progress.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app uses your workout data to power the adventure.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -427,9 +418,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jacobwhitaker.FittnessRPG;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacobbyronwhitaker.fitnessadventure;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -438,6 +430,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -449,15 +442,18 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = FittnessRPG/FittnessRPG.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 2U5ZNJ449S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Fitness RPG";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads workouts (running, cycling,  strength) to convert exercise into game progress.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app uses your workout data to power gameplay.";
+				INFOPLIST_KEY_CFBundleDisplayName = "The Path";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "This app reads workouts (running, cycling, strength) to convert exercise into adventure progress.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "This app uses your workout data to power the adventure.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -468,9 +464,10 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = jacobwhitaker.FittnessRPG;
+				MARKETING_VERSION = 1.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.jacobbyronwhitaker.fitnessadventure;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

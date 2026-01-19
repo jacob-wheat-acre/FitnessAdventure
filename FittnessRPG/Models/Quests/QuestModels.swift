@@ -22,5 +22,5 @@ struct QuestArea: Identifiable, Codable {
     let name: String
     let unlockMiles: Double
     var enemies: [RPGEnemy]     // <-- migrated
-    var rewardsXP: Int
+    var rewardButtonName: String
 }

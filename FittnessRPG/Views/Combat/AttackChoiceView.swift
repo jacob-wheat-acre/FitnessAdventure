@@ -1,94 +1,73 @@
 import SwiftUI
 
-struct SkillTreeView: View {
+struct AttackChoiceView: View {
     @ObservedObject var vm: GameViewModel
+    let choices: [Attack]
+
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let cls = vm.player.playerClass
-        let all = AttackCatalog.attacks(for: cls).sorted { a, b in
-            if a.requiredLevel != b.requiredLevel { return a.requiredLevel < b.requiredLevel }
-            return a.name < b.name
-        }
-
-        let unlocked = all.filter { $0.requiredLevel <= vm.player.level }
-        let locked = all.filter { $0.requiredLevel > vm.player.level }
-
-        return List {
+        List {
             Section {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            ClassIcon(playerClass: cls, size: 16)
-                            Text("\(cls.displayName) Attack Tree")
-                                .font(.headline)
-                        }
-                        Text("Unlocked: \(unlocked.count) • Locked: \(locked.count)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("New Attacks Ready")
+                        .font(.headline)
+
+                    Text("May these attacks help you on your adventure.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.vertical, 4)
             }
 
-            if !unlocked.isEmpty {
-                Section("Unlocked") {
-                    ForEach(unlocked) { atk in
-                        AttackDetailRow(vm: vm, attack: atk, isUnlocked: true)
-                    }
+            Section("Now Available") {
+                ForEach(choices) { atk in
+                    AttackChoiceDetailRow(vm: vm, attack: atk)
                 }
             }
 
-            if !locked.isEmpty {
-                Section("Locked") {
-                    ForEach(locked) { atk in
-                        AttackDetailRow(vm: vm, attack: atk, isUnlocked: false)
-                    }
+            Section {
+                Button("Continue") {
+                    vm.dismissActiveSheet()
+                    vm.savePlayer()
+                    dismiss()
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
             }
         }
-        .navigationTitle("Attack Tree")
+        .navigationTitle("Attacks Unlocked")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
-private struct AttackDetailRow: View {
+private struct AttackChoiceDetailRow: View {
     @ObservedObject var vm: GameViewModel
     let attack: Attack
-    let isUnlocked: Bool
 
     var body: some View {
-        let accent = (attack.primaryStylingAffinity?.uiColor ?? RPGColors.neutral)
         let snap = vm.effectiveAttack(for: attack)
         let hints = modifierHints(for: attack)
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 10) {
 
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
+            HStack(spacing: 10) {
                 if let a = attack.primaryStylingAffinity {
-                    AffinityIcon(affinity: a, size: 16)
+                    AffinityIcon(affinity: a, size: 18)
                 }
 
                 Text(attack.name)
                     .font(.headline)
 
                 Spacer()
-                Tag(text: isUnlocked ? "Unlocked" : "Locked", tint: accent)
             }
 
-            // Effective combat outputs + effective mana
+            // Combat outputs (effective)
             HStack(spacing: 10) {
-                statChip(label: "HP", value: snap.hpRemoved)
                 statChip(label: "Armor", value: snap.armorRemoved)
+                statChip(label: "HP", value: snap.hpRemoved)
                 statChip(label: "Mana", value: snap.manaCost)
                 Spacer()
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Level: \(attack.requiredLevel)")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-
             }
 
             if !hints.isEmpty {
@@ -103,7 +82,7 @@ private struct AttackDetailRow: View {
             }
         }
         .padding(.vertical, 6)
-        .opacity(isUnlocked ? 1.0 : 0.55)
+        .contentShape(Rectangle())
     }
 
     private func statChip(label: String, value: Int) -> some View {
@@ -134,10 +113,12 @@ private struct AttackDetailRow: View {
                 case .endurance:
                     out.append("More Endurance lowers mana cost.")
                 default:
+                    // If you ever add other affinities to mana discount later:
                     out.append("More \(affinity.displayName) lowers mana cost.")
                 }
 
             case .addHPPerWeeklyEffort(let affinity, _):
+                // Your intent: Strength => more HP damage
                 if affinity == .force {
                     out.append("More Force increases HP damage.")
                 } else {
@@ -145,6 +126,7 @@ private struct AttackDetailRow: View {
                 }
 
             case .addArmorPerWeeklyEffort(let affinity, _):
+                // Your intent: Precision => more armor removal
                 if affinity == .precision {
                     out.append("More Precision increases armor removal.")
                 } else {
@@ -153,24 +135,8 @@ private struct AttackDetailRow: View {
             }
         }
 
+        // De-dupe while preserving order
         var seen: Set<String> = []
         return out.filter { seen.insert($0).inserted }
-    }
-}
-
-private struct Tag: View {
-    let text: String
-    var tint: Color = .gray
-
-    var body: some View {
-        Text(text)
-            .font(.caption2)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(.thinMaterial)
-            .overlay(
-                Capsule().strokeBorder(tint.opacity(0.35), lineWidth: 1)
-            )
-            .clipShape(Capsule())
     }
 }

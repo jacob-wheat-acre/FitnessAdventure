@@ -13,19 +13,85 @@ final class GameViewModel: ObservableObject {
     @Published var recentSessions: [WorkoutSession] = []
     @Published var lastEarnedEffort: Effort? = nil
 
-    /// Sheet shows newly usable attacks (notification).
-    @Published var showAttackChoiceSheet: Bool = false
     @Published var attackChoices: [Attack] = []
-
+    
+    // for routing between Attack selection sheet and level up sheet
+    @Published var activeSheet: ActiveSheet? = nil
+    private var pendingSheets: [ActiveSheet] = []
+    
     // In-memory encounter cache (per quest area)
     @Published private var encounterByQuestName: [String: EncounterState] = [:]
 
     @Published var quests: [QuestArea] = [
-        QuestArea(name: "Field", unlockMiles: 0, enemies: EnemyCatalog.field, rewardsXP: 300),
-        QuestArea(name: "Cave", unlockMiles: 20, enemies: EnemyCatalog.cave, rewardsXP: 600),
-        QuestArea(name: "Seaside", unlockMiles: 40, enemies: EnemyCatalog.seaside, rewardsXP: 1000)
+        QuestArea(name: "Field", unlockMiles: 0, enemies: EnemyCatalog.field, rewardButtonName: "Field Button"),
+        QuestArea(name: "Cave", unlockMiles: 20, enemies: EnemyCatalog.cave, rewardButtonName: "Cave Button"),
+        QuestArea(name: "Seaside", unlockMiles: 35, enemies: EnemyCatalog.seaside, rewardButtonName: "Seaside Button")
     ]
+    
+    @Published var defeatPopupMessage: String? = nil
+    @Published var defeatPopupEnemyName: String? = nil
+    
+    @Published var levelUpSnapshot: LevelUpSnapshot? = nil
+    
+    @Published var applyAllSummary: ApplyAllSummary? = nil
 
+    // MARK: - Sheet mechanics and queue
+    
+
+    func presentSheetNow(_ sheet: ActiveSheet) {
+        guard !isAlreadyScheduled(sheet) else { return }
+        
+        if activeSheet == nil {
+            activeSheet = sheet
+        } else {
+            pendingSheets.append(sheet)
+        }
+    }
+
+    func enqueueSheet(_ sheet: ActiveSheet) {
+        guard !isAlreadyScheduled(sheet) else { return }
+        
+        switch sheet {
+        case .levelUp:
+            //insert before the first attackchoice, so levelup always precedes it.
+            if let idx = pendingSheets.firstIndex(where: { $0.id == "attackChoice" }) {
+                pendingSheets.insert(sheet, at: idx)
+            } else {
+                pendingSheets.append(sheet)
+            }
+            
+        default:
+            pendingSheets.append(sheet)
+        }
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.presentNextSheetIfPossible()
+        }
+    }
+
+    func dismissActiveSheet() {
+        print("DISMISS active=\(activeSheet?.id ?? "nil") pendingSheets.map{ $0.id}")
+        activeSheet = nil
+        
+        DispatchQueue.main.async { [weak self] in
+            self?.presentNextSheetIfPossible()
+        }
+        
+        print("AFTER dismiss active=\(activeSheet?.id ?? "nil") pending=\(pendingSheets.map{$0.id})")
+    }
+
+    private func presentNextSheetIfPossible() {
+        guard activeSheet == nil else { return }
+        guard !pendingSheets.isEmpty else { return }
+        activeSheet = pendingSheets.removeFirst()
+    }
+    
+    private func isAlreadyScheduled(_ sheet: ActiveSheet) -> Bool {
+        if activeSheet?.id == sheet.id { return true }
+        return pendingSheets.contains(where: {$0.id == sheet.id })
+    }
+
+    
     // MARK: - Manual session persistence (JSON file in Documents)
 
     private let manualSessionsFilename = "manual_workouts_v1.json"
@@ -114,9 +180,11 @@ final class GameViewModel: ObservableObject {
         player.manaPool = 0
         lastEarnedEffort = nil
         encounterByQuestName = [:]
-        showAttackChoiceSheet = false
+        activeSheet = nil
         attackChoices = []
+        levelUpSnapshot = nil
         UserDefaults.standard.set(false, forKey: "hasSeenOpeningHook")
+        
 
 
         saveManualSessionsToDisk([])
@@ -252,11 +320,26 @@ final class GameViewModel: ObservableObject {
 
     func applyWorkout(_ session: WorkoutSession) {
         guard !player.appliedWorkoutIDs.contains(where: { $0 == session.id }) else { return }
-
-        let effectiveDistance = (session.type == .cycle) ? (session.distanceMiles * 0.5) : session.distanceMiles
-
-        _ = player.applyWorkout(session.id, calories: session.calories, distance: effectiveDistance)
-
+      
+        let oldLevel = player.level
+        
+        let creditedDistance = (session.type == .cycle)
+            ? (max(0, session.distanceMiles * 0.5))
+            : max(0, session.distanceMiles)
+        
+        let levelUps = player.applyWorkout(
+            session.id,
+            calories: session.calories,
+            distance: creditedDistance
+            )
+        
+        if levelUps > 0 {
+            //print("ENQUEUE levelUp: +\(levelUps) newLevel+\(player.level)") <-keeping this for future debugging
+            player.unspentLevelUps += levelUps
+            let snap = makeLevelUpSnapshot(for: player.level) //new level after applying
+            enqueueSheet(.levelUp(snap))
+        }
+        
         replenishManaPoolPerWorkout()
         awardEffort(for: session)
 
@@ -315,10 +398,20 @@ final class GameViewModel: ObservableObject {
     // MARK: - XP
 
     func addXP(_ amount: Int) {
+        let oldLevel = player.level
         _ = player.addXP(amount)
-        presentNewlyUsableAttacksIfNeeded()
+
+        let newLevel = player.level
+        let levelsGained = max(0, newLevel - oldLevel)
+
+        if levelsGained > 0 {
+            player.unspentLevelUps += levelsGained
+            enqueueSheet(.levelUp(makeLevelUpSnapshot(for: newLevel)))
+        }
+
         savePlayer()
     }
+
 
     // MARK: - Effective attack (modifiers for attacks based on weekly effort stats
     struct EffectiveAttack {
@@ -404,6 +497,9 @@ final class GameViewModel: ObservableObject {
     }
 
     private func presentNewlyUsableAttacksIfNeeded() {
+        // Don't show during bootstrap / character creation
+        guard !player.name.isEmpty else { return }
+        
         let known = currentKnownAttacks()
         let usableNow = known.filter { meetsRequirementForUseOutsideEncounter($0) }
 
@@ -415,7 +511,10 @@ final class GameViewModel: ObservableObject {
         player.notifiedUsableAttackIDs.formUnion(newlyUsable.map { $0.id })
 
         attackChoices = newlyUsable
-        showAttackChoiceSheet = true
+        enqueueSheet(.attackChoice)
+        
+        guard activeSheet == nil else { return }
+        activeSheet = .attackChoice
     }
 
     // MARK: - Quest persistence
@@ -466,18 +565,23 @@ final class GameViewModel: ObservableObject {
     }
 
     struct EncounterApplyResult {
-        let message: String
+        let message: String                 // for toast/log (non-defeat)
+        let defeatPopupMessage: String?     // for full-screen popup
+        let enemyName: String?
         let enemyDefeated: Bool
         let questCompleted: Bool
     }
 
     func applyEncounterAttack(_ attack: Attack, in quest: QuestArea) -> EncounterApplyResult {
         guard var state = encounterState(for: quest) else {
-            return .init(message: "Nothing to attack (quest may be complete).", enemyDefeated: false, questCompleted: false)
+            return .init(message: "Nothing to attack (quest may be complete).", defeatPopupMessage: nil, enemyName: nil, enemyDefeated: false, questCompleted: false)
         }
 
         // Enabeling effort stats into attacks
         let snapshot = effectiveAttack(for: attack)
+        
+        // Capturing enemy name for display
+        let enemyNameAtTimeofAttack = state.enemy.name
 
         let outcome = EncounterEngine.apply(
             manaCost: snapshot.manaCost,
@@ -489,7 +593,7 @@ final class GameViewModel: ObservableObject {
 
         if case .noEffect(let reason) = outcome.result {
             encounterByQuestName[quest.name] = state
-            return .init(message: reason, enemyDefeated: false, questCompleted: false)
+            return .init(message: reason, defeatPopupMessage: nil, enemyName: nil, enemyDefeated: false, questCompleted: false)
         }
 
         if outcome.manaSpent > 0 {
@@ -520,9 +624,31 @@ final class GameViewModel: ObservableObject {
 
         setProgress(p, for: quest.name)
         savePlayer()
+        
+        var toastMessage = ""
+        var defeatPopup: String? = nil
+        
+        switch outcome.result {
+        case.noEffect(let reason):
+            toastMessage = reason
+            
+        case.applied(let messages):
+            toastMessage = messages.isEmpty
+            ? "Attack applied."
+            : messages.joined(separator: " ")
+        case.enemyDefeated(message: let message):
+            defeatPopup = message
+            toastMessage = ""
+        }
+        
+        return.init(
+            message: toastMessage,
+            defeatPopupMessage: defeatPopup,
+            enemyName: defeatPopup == nil ? nil : enemyNameAtTimeofAttack,
+            enemyDefeated: state.isDefeated,
+            questCompleted: p.completed
+        )
 
-        let msg = encounterMessage(from: outcome.result)
-        return .init(message: msg, enemyDefeated: state.isDefeated, questCompleted: p.completed)
     }
 
     private func encounterMessage(from result: EncounterResult) -> String {
@@ -554,7 +680,11 @@ final class GameViewModel: ObservableObject {
         p.rewardClaimed = true
         setProgress(p, for: quest.name)
 
-        addXP(quest.rewardsXP)
+        // Replace XP reward with a collectible "button"
+        player.claimedQuestButtonNames.insert(quest.name)
+        
+        savePlayer()
+        
         return true
     }
 
@@ -566,4 +696,18 @@ final class GameViewModel: ObservableObject {
         let idx = min(max(0, p.currentEnemyIndex), max(quest.enemies.count - 1, 0))
         return "Enemy \(idx + 1)/\(quest.enemies.count)"
     }
+    
+    private func makeLevelUpSnapshot(for level: Int) -> LevelUpSnapshot {
+        LevelUpSnapshot(
+            newLevel: level,
+            manaPerWorkout: LevelRules.manaPerWorkout(for: level),
+            manaCap: LevelRules.manaCap(for: level),
+            xpToNextLevel: LevelRules.xpToNextLevel(from: level)
+        )
+    }
+    
+    
 }
+
+
+

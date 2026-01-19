@@ -144,14 +144,6 @@ struct MainMenuView: View {
                     animateXP = newValue
                 }
             }
-            .sheet(
-                isPresented: Binding(
-                    get: { model.showAttackChoiceSheet },
-                    set: { model.showAttackChoiceSheet = $0 }
-                )
-            ) {
-                AttackChoiceView(vm: model, choices: model.attackChoices)
-            }
         }
     }
 }
@@ -160,13 +152,37 @@ struct MainMenuView: View {
 
 private struct TrophyRoomView: View {
     @ObservedObject var vm: GameViewModel
-    @State private var selected: TrophyEntry? = nil
 
     private struct TrophyEntry: Identifiable {
         let id: String          // enemy id
         let name: String        // enemy name
         let trophyText: String  // narrative.trophy
     }
+
+    // Button rewards for quests storage
+    private struct ButtonEntry: Identifiable {
+        let id: String      // quest name
+        let title: String   // display label
+    }
+    
+    private var buttons: [ButtonEntry] {
+        let claimed = vm.player.claimedQuestButtonNames
+        guard !claimed.isEmpty else { return [] }
+        
+        //Use the quest catalog as source of truth
+        let byName = Dictionary(uniqueKeysWithValues: vm.quests.map { ($0.name, $0) })
+        
+        return claimed
+            .map { questName in
+                if let q = byName[questName] {
+                    return ButtonEntry(id: questName, title: q.rewardButtonName)
+                } else {
+                    return ButtonEntry(id: questName, title: "\(questName) Button")
+                }
+            }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+    }
+    
 
     private var trophies: [TrophyEntry] {
         let defeated = vm.player.defeatedEnemyIDs
@@ -187,9 +203,34 @@ private struct TrophyRoomView: View {
             }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
-
+    
     var body: some View {
         List {
+            // Buttons section
+            Section {
+                if buttons.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("No buttons yet")
+                            .font(.headline)
+                        Text("Clear a region and claim its button to display it here.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 6)
+                } else {
+                    ForEach(buttons) { b in
+                        HStack {
+                            Image(systemName: "seal.fill")
+                                .foregroundStyle(.secondary)
+                            Text(b.title)
+                            Spacer()
+                        }
+                    }
+                }
+            } header: {
+                Text("Buttons")
+            }
+
             if trophies.isEmpty {
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
@@ -205,7 +246,7 @@ private struct TrophyRoomView: View {
                 Section {
                     ForEach(trophies) { t in
                         Button {
-                            selected = t
+                            vm.presentSheetNow(.trophyDetail(.init(title: t.name, text: t.trophyText)))
                         } label: {
                             HStack {
                                 Text(t.name)
@@ -225,13 +266,10 @@ private struct TrophyRoomView: View {
         }
         .navigationTitle("Trophy Room")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $selected) { t in
-            TrophyDetailSheet(title: t.name, text: t.trophyText)
         }
-    }
 }
 
-private struct TrophyDetailSheet: View {
+struct TrophyDetailSheet: View {
     let title: String
     let text: String
 
@@ -255,6 +293,8 @@ private struct TrophyDetailSheet: View {
         }
     }
 }
+
+
 
 // MARK: - Attack-style menu label
 
@@ -336,25 +376,25 @@ private struct PoolsCard: View {
 
                 effortRow(
                     affinity: .rhythm,
-                    howToEarn: "Go for a walk",
+                    howToEarn: "Walk",
                     value: countRecentWeek(.rhythm)
                 )
 
                 effortRow(
                     affinity: .endurance,
-                    howToEarn: "Go for a run or a bike ride",
+                    howToEarn: "Run or bike",
                     value: countRecentWeek(.endurance)
                 )
 
                 effortRow(
                     affinity: .force,
-                    howToEarn: "Do traditional strength training",
+                    howToEarn: "Lift weights",
                     value: countRecentWeek(.force)
                 )
 
                 effortRow(
                     affinity: .precision,
-                    howToEarn: "Do another type of workout",
+                    howToEarn: "HIIT, sports, other",
                     value: countRecentWeek(.precision)
                 )
             }
@@ -424,18 +464,18 @@ private struct PoolsCard: View {
             .count
     }
 
-    private func effortRow(affinity: Affinity, howToEarn: String, value: Int) -> some View {
+    private func effortRow(
+        affinity: Affinity,
+        howToEarn: String,
+        value: Int
+    ) -> some View {
         HStack(alignment: .firstTextBaseline) {
             HStack(spacing: 10) {
                 AffinityIcon(affinity: affinity, size: 18)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(affinity.displayName)
+                    Text("\(affinity.displayName) - \(howToEarn)")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text(howToEarn)
-                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
