@@ -1,7 +1,37 @@
+# macOS
 .DS_Store
-xcuserdata/
+
+# Xcode
 DerivedData/
+*.xcuserdata/
+xcuserdata/
 *.xcuserstate
 *.xccheckout
 *.xcscmblueprint
+*.moved-aside
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager
 .build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods / Carthage (only if you add them later)
+Pods/
+Carthage/Build/
+
+# Fastlane (only if you add it later)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Logs
+*.log
+
+# Local-only config / secrets (recommended pattern)
+*.env
+Secrets/
+Config.local.xcconfig
